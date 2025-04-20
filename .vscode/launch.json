@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Backend",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/expense-tracker-backend/src/index.ts",
+            "runtimeExecutable": "${workspaceFolder}/expense-tracker-backend/node_modules/.bin/ts-node",
+            "args": ["${workspaceFolder}/expense-tracker-backend/src/index.ts"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/expense-tracker-backend/dist/**/*.js"],
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Build Backend",
+            "port": 4000,
+            "restart": true,
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/expense-tracker-backend/dist/**/*.js"]
+        }
+    ]
+}

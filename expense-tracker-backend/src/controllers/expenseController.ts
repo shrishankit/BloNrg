@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { User } from '../types/user';
+import { AuthUser } from '../types/user';
 
 const prisma = new PrismaClient();
 
@@ -10,7 +10,7 @@ export const getUserExpenses = async (req: Request, res: Response) => {
     const userId = parseInt(req.params.userId);
     
     // Check if the authenticated user is requesting their own expenses or is an admin
-    const authenticatedUser = req.user as User;
+    const authenticatedUser = req.user as AuthUser;
     if (authenticatedUser.id !== userId && authenticatedUser.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -56,7 +56,7 @@ export const getAllExpenses = async (req: Request, res: Response) => {
 export const createExpense = async (req: Request, res: Response) => {
   try {
     const { amount, description, category, date } = req.body;
-    const userId = (req.user as User).id;
+    const userId = (req.user as AuthUser).id;
 
     const expense = await prisma.expense.create({
       data: {
@@ -79,7 +79,7 @@ export const createExpense = async (req: Request, res: Response) => {
 export const createBulkExpenses = async (req: Request, res: Response) => {
   try {
     const { expenses } = req.body;
-    const userId = (req.user as User).id;
+    const userId = (req.user as AuthUser).id;
 
     if (!Array.isArray(expenses) || expenses.length === 0) {
       return res.status(400).json({ message: 'Invalid request. Expected an array of expenses.' });
@@ -123,8 +123,8 @@ export const createBulkExpenses = async (req: Request, res: Response) => {
 export const deleteExpense = async (req: Request, res: Response) => {
   try {
     const expenseId = parseInt(req.params.id);
-    const userId = (req.user as User).id;
-    const isAdmin = (req.user as User).role === 'ADMIN';
+    const userId = (req.user as AuthUser).id;
+    const isAdmin = (req.user as AuthUser).role === 'ADMIN';
 
     // Check if expense exists and belongs to the user (or user is admin)
     const expense = await prisma.expense.findUnique({
@@ -155,8 +155,8 @@ export const deleteExpense = async (req: Request, res: Response) => {
 export const deleteBulkExpenses = async (req: Request, res: Response) => {
   try {
     const { expenseIds } = req.body;
-    const userId = (req.user as User).id;
-    const isAdmin = (req.user as User).role === 'ADMIN';
+    const userId = (req.user as AuthUser).id;
+    const isAdmin = (req.user as AuthUser).role === 'ADMIN';
 
     if (!Array.isArray(expenseIds) || expenseIds.length === 0) {
       return res.status(400).json({ message: 'Invalid request. Expected an array of expense IDs.' });

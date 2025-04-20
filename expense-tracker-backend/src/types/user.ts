@@ -2,6 +2,13 @@ import { Prisma } from '@prisma/client';
 
 export type UserRole = 'ADMIN' | 'USER';
 
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+}
+
 export interface User {
   id: number;
   username: string;

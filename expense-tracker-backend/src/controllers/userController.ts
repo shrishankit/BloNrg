@@ -104,7 +104,7 @@ export const loginUser = async (req: Request<{}, {}, LoginUserInput>, res: Respo
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '1h' }
     );
@@ -146,6 +146,54 @@ export const getOnlineUsers = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error getting online users:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const promoteToAdmin = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const requestingUser = req.user as User;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Check if requesting user is admin
+    if (requestingUser.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: `User not found with email: ${email}` });
+    }
+
+    // Update user role to ADMIN
+    const updatedUser = await prisma.user.update({
+      where: { email },
+      data: { role: 'ADMIN' }
+    });
+
+    const userResponse: UserResponse = {
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt
+    };
+
+    res.json({
+      message: 'User promoted to admin successfully',
+      user: userResponse
+    });
+  } catch (error) {
+    console.error('Error promoting user to admin:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 }; 
