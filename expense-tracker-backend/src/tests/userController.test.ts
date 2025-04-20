@@ -2,17 +2,31 @@ import { createUser, loginUser } from '../controllers/userController';
 import { createMockUser, mockRequest, mockResponse, cleanupDatabase, prisma } from './setup';
 import bcrypt from 'bcrypt';
 
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashedPassword'),
+  compare: jest.fn().mockResolvedValue(true)
+}));
+
 describe('User Controller', () => {
   beforeEach(async () => {
-    // Only cleanup if not preserving database
-    if (process.env.PRESERVE_DATABASE !== 'true') {
-      await cleanupDatabase();
-    }
+    await cleanupDatabase();
   });
 
   describe('createUser', () => {
     it('should create a new user successfully', async () => {
       // Arrange
+      const mockUser = {
+        id: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'hashedPassword',
+        firstName: 'Test',
+        lastName: 'User'
+      };
+
+      (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
       const req = mockRequest({
         body: {
           username: 'testuser',
@@ -37,16 +51,14 @@ describe('User Controller', () => {
 
     it('should return 400 if user already exists', async () => {
       // Arrange
-      await prisma.user.create({
-        data: {
-          username: 'existinguser',
-          email: 'existing@example.com',
-          password: 'hashedpassword',
-          role: 'USER' as any,
-          firstName: 'Existing',
-          lastName: 'User'
-        } as any
-      });
+      const existingUser = {
+        id: 1,
+        username: 'existinguser',
+        email: 'existing@example.com',
+        password: 'hashedpassword'
+      };
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(existingUser);
 
       const req = mockRequest({
         body: {
@@ -69,19 +81,15 @@ describe('User Controller', () => {
   describe('loginUser', () => {
     it('should login user successfully with correct credentials', async () => {
       // Arrange
-      const password = 'password123';
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      const user = await prisma.user.create({
-        data: {
-          username: 'loginuser',
-          email: 'login@example.com',
-          password: hashedPassword,
-          role: 'USER' as any,
-          firstName: 'Login',
-          lastName: 'User'
-        } as any
-      });
+      const mockUser = {
+        id: 1,
+        username: 'loginuser',
+        email: 'login@example.com',
+        password: 'hashedPassword'
+      };
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const req = mockRequest({
         body: {
@@ -103,19 +111,15 @@ describe('User Controller', () => {
 
     it('should return 401 with incorrect password', async () => {
       // Arrange
-      const password = 'password123';
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      await prisma.user.create({
-        data: {
-          username: 'wrongpass',
-          email: 'wrong@example.com',
-          password: hashedPassword,
-          role: 'USER' as any,
-          firstName: 'Wrong',
-          lastName: 'Password'
-        } as any
-      });
+      const mockUser = {
+        id: 1,
+        username: 'wrongpass',
+        email: 'wrong@example.com',
+        password: 'hashedPassword'
+      };
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       const req = mockRequest({
         body: {
@@ -135,6 +139,8 @@ describe('User Controller', () => {
 
     it('should return 401 if user does not exist', async () => {
       // Arrange
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
       const req = mockRequest({
         body: {
           email: 'nonexistent@example.com',

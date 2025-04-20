@@ -21,18 +21,29 @@ describe('Expense Controller', () => {
   let adminExpense: any;
 
   beforeEach(async () => {
-    // Only cleanup if not preserving database
-    if (process.env.PRESERVE_DATABASE !== 'true') {
-      await cleanupDatabase();
-    }
+    await cleanupDatabase();
     
-    // Create test users
+    // Create mock users
     regularUser = await createMockUser('USER');
     adminUser = await createMockUser('ADMIN');
     
-    // Create test expenses
+    // Create mock expenses
     userExpense = await createMockExpense(regularUser.id);
     adminExpense = await createMockExpense(adminUser.id);
+
+    // Setup mock responses for findUnique
+    (prisma.expense.findUnique as jest.Mock).mockImplementation(({ where }) => {
+      if (where.id === userExpense.id) return Promise.resolve(userExpense);
+      if (where.id === adminExpense.id) return Promise.resolve(adminExpense);
+      return Promise.resolve(null);
+    });
+
+    // Setup mock responses for findMany
+    (prisma.expense.findMany as jest.Mock).mockImplementation(({ where }) => {
+      if (where?.userId === regularUser.id) return Promise.resolve([userExpense]);
+      if (where?.userId === adminUser.id) return Promise.resolve([adminExpense]);
+      return Promise.resolve([userExpense, adminExpense]);
+    });
   });
 
   describe('getUserExpenses', () => {

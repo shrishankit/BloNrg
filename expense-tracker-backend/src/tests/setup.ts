@@ -3,6 +3,31 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../types/user';
 
+// Mock Prisma client
+jest.mock('@prisma/client', () => {
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      user: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      expense: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      $transaction: jest.fn(),
+    })),
+  };
+});
+
 // Create a test Prisma client
 export const prisma = new PrismaClient();
 
@@ -11,29 +36,33 @@ process.env.JWT_SECRET = 'test-secret-key';
 
 // Helper function to create a mock user
 export const createMockUser = async (userRole = 'USER') => {
-  return await prisma.user.create({
-    data: {
-      username: `testuser-${Date.now()}`,
-      email: `test-${Date.now()}@example.com`,
-      password: 'hashedpassword',
-      role: userRole,
-      firstName: 'Test',
-      lastName: 'User'
-    } as any
-  });
+  const mockUser = {
+    id: Math.floor(Math.random() * 1000),
+    username: `testuser-${Date.now()}`,
+    email: `test-${Date.now()}@example.com`,
+    password: 'hashedpassword',
+    role: userRole,
+    firstName: 'Test',
+    lastName: 'User'
+  };
+  
+  (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
+  return mockUser;
 };
 
 // Helper function to create a mock expense
 export const createMockExpense = async (userId: number) => {
-  return await prisma.expense.create({
-    data: {
-      userId,
-      amount: 100.50,
-      description: 'Test expense',
-      category: 'Food',
-      date: new Date()
-    }
-  });
+  const mockExpense = {
+    id: Math.floor(Math.random() * 1000),
+    userId,
+    amount: 100.50,
+    description: 'Test expense',
+    category: 'Food',
+    date: new Date()
+  };
+  
+  (prisma.expense.create as jest.Mock).mockResolvedValue(mockExpense);
+  return mockExpense;
 };
 
 // Helper function to generate a JWT token
@@ -75,7 +104,6 @@ export const mockResponse = () => {
     send: function(data: any) { this.data = data; return this; }
   };
   
-  // Add all required Response properties with empty implementations
   return Object.assign(res, {
     headersSent: false,
     locals: {},
@@ -99,18 +127,10 @@ export const mockResponse = () => {
     get: () => '',
     header: () => res,
     type: () => res,
-    // Add other required properties with empty implementations
   }) as unknown as Response;
 };
 
-// Clean up database after tests
+// Clean up mocks after tests
 export const cleanupDatabase = async () => {
-  // Skip cleanup if PRESERVE_DATABASE is set to true
-  if (process.env.PRESERVE_DATABASE === 'true') {
-    console.log('Skipping database cleanup as PRESERVE_DATABASE is set to true');
-    return;
-  }
-  
-  await prisma.expense.deleteMany();
-  await prisma.user.deleteMany();
+  jest.clearAllMocks();
 }; 
