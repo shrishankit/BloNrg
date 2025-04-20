@@ -7,6 +7,28 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Parse command line arguments
+SKIP_TESTS=false
+PRESERVE_DB=true
+for arg in "$@"; do
+  case $arg in
+    -st|--skip-tests)
+      SKIP_TESTS=true
+      shift
+      ;;
+    -pd|--preserve-db)
+      PRESERVE_DB=true
+      shift
+      ;;
+    *)
+      # Unknown option
+      print_message "Unknown option: $arg" "${RED}"
+      print_message "Usage: $0 [-st|--skip-tests] [-pd|--preserve-db]" "${YELLOW}"
+      exit 1
+      ;;
+  esac
+done
+
 # Function to print colored text
 print_message() {
   echo -e "${2}${1}${NC}"
@@ -15,6 +37,25 @@ print_message() {
 # Function to check if a command exists
 command_exists() {
   command -v "$1" >/dev/null 2>&1
+}
+
+# Function to get value from .env file
+get_env_value() {
+  local key=$1
+  local file=$2
+  if [ -f "$file" ]; then
+    grep "^${key}=" "$file" | cut -d '=' -f2
+  fi
+}
+
+# Function to check if dependencies are installed
+check_dependencies() {
+  local dir=$1
+  if [ -d "$dir/node_modules" ] && [ -f "$dir/package-lock.json" ]; then
+    return 0  # Dependencies are installed
+  else
+    return 1  # Dependencies need to be installed
+  fi
 }
 
 # Check prerequisites
@@ -44,50 +85,122 @@ if ! command_exists mysql; then
   print_message "You can install MySQL from https://dev.mysql.com/downloads/mysql/" "${YELLOW}"
 fi
 
-# Create .env file if it doesn't exist
-if [ ! -f "expense-tracker-backend/.env" ]; then
-  print_message "Creating .env file for backend..." "${YELLOW}"
-  cat > expense-tracker-backend/.env << EOF
+# Check for existing .env file and values
+ENV_FILE="expense-tracker-backend/.env"
+if [ -f "$ENV_FILE" ]; then
+  print_message "Found existing .env file. Checking for database credentials..." "${BLUE}"
+  
+  # Get existing values
+  EXISTING_DB_HOST=$(get_env_value "DB_HOST" "$ENV_FILE")
+  EXISTING_DB_USER=$(get_env_value "DB_USER" "$ENV_FILE")
+  EXISTING_DB_PASSWORD=$(get_env_value "DB_PASSWORD" "$ENV_FILE")
+  EXISTING_DB_NAME=$(get_env_value "DB_NAME" "$ENV_FILE")
+  
+  # Check if all required values exist
+  if [ -n "$EXISTING_DB_HOST" ] && [ -n "$EXISTING_DB_USER" ] && [ -n "$EXISTING_DB_PASSWORD" ] && [ -n "$EXISTING_DB_NAME" ]; then
+    print_message "Database credentials already configured in .env file." "${GREEN}"
+    DB_HOST=$EXISTING_DB_HOST
+    DB_USER=$EXISTING_DB_USER
+    DB_PASSWORD=$EXISTING_DB_PASSWORD
+    DB_NAME=$EXISTING_DB_NAME
+  else
+    print_message "Some database credentials are missing in .env file." "${YELLOW}"
+    # Prompt for missing credentials
+    read -p "Database Host (default: ${EXISTING_DB_HOST:-localhost}): " DB_HOST
+    DB_HOST=${DB_HOST:-${EXISTING_DB_HOST:-localhost}}
+
+    read -p "Database User (default: ${EXISTING_DB_USER:-root}): " DB_USER
+    DB_USER=${DB_USER:-${EXISTING_DB_USER:-root}}
+
+    read -s -p "Database Password: " DB_PASSWORD
+    echo
+
+    read -p "Database Name (default: ${EXISTING_DB_NAME:-expense_tracker}): " DB_NAME
+    DB_NAME=${DB_NAME:-${EXISTING_DB_NAME:-expense_tracker}}
+  fi
+else
+  # Prompt for database credentials if .env doesn't exist
+  print_message "Please enter your MySQL database credentials:" "${BLUE}"
+  read -p "Database Host (default: localhost): " DB_HOST
+  DB_HOST=${DB_HOST:-localhost}
+
+  read -p "Database User (default: root): " DB_USER
+  DB_USER=${DB_USER:-root}
+
+  read -s -p "Database Password: " DB_PASSWORD
+  echo
+
+  read -p "Database Name (default: expense_tracker): " DB_NAME
+  DB_NAME=${DB_NAME:-expense_tracker}
+fi
+
+# Create DATABASE_URL
+DATABASE_URL="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}"
+
+# Create or update .env file
+if [ ! -f "$ENV_FILE" ] || [ -z "$EXISTING_DB_HOST" ] || [ -z "$EXISTING_DB_USER" ] || [ -z "$EXISTING_DB_PASSWORD" ] || [ -z "$EXISTING_DB_NAME" ]; then
+  print_message "Creating/Updating .env file for backend..." "${YELLOW}"
+  cat > "$ENV_FILE" << EOF
 PORT=4000
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=password
-DB_NAME=expense_tracker
+DB_HOST=${DB_HOST}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=${DB_NAME}
+DATABASE_URL=${DATABASE_URL}
 JWT_SECRET=your_jwt_secret_key_change_this_in_production
 EOF
-  print_message "Created .env file with default values. Please update with your actual MySQL credentials." "${YELLOW}"
+  print_message "Created/Updated .env file with database credentials." "${GREEN}"
 fi
 
 # Install dependencies
-print_message "Installing backend dependencies..." "${BLUE}"
+print_message "Checking backend dependencies..." "${BLUE}"
 cd expense-tracker-backend
-npm install
-if [ $? -ne 0 ]; then
-  print_message "Failed to install backend dependencies." "${RED}"
-  exit 1
+if check_dependencies "."; then
+  print_message "Backend dependencies are already installed." "${GREEN}"
+else
+  print_message "Installing backend dependencies..." "${BLUE}"
+  npm install
+  if [ $? -ne 0 ]; then
+    print_message "Failed to install backend dependencies." "${RED}"
+    exit 1
+  fi
 fi
 
-print_message "Installing frontend dependencies..." "${BLUE}"
+print_message "Checking frontend dependencies..." "${BLUE}"
 cd ../expense-tracker-frontend
-npm install
-if [ $? -ne 0 ]; then
-  print_message "Failed to install frontend dependencies." "${RED}"
-  exit 1
+if check_dependencies "."; then
+  print_message "Frontend dependencies are already installed." "${GREEN}"
+else
+  print_message "Installing frontend dependencies..." "${BLUE}"
+  npm install
+  if [ $? -ne 0 ]; then
+    print_message "Failed to install frontend dependencies." "${RED}"
+    exit 1
+  fi
 fi
 
 # Run tests
-print_message "Running backend tests..." "${BLUE}"
-cd ../expense-tracker-backend
-npm test
-if [ $? -ne 0 ]; then
-  print_message "Backend tests failed. Continuing anyway..." "${YELLOW}"
-fi
+if [ "$SKIP_TESTS" = false ]; then
+  print_message "Running backend tests..." "${BLUE}"
+  cd ../expense-tracker-backend
+  if [ "$PRESERVE_DB" = true ]; then
+    print_message "Running tests with database preservation..." "${YELLOW}"
+    PRESERVE_DATABASE=true npm test
+  else
+    npm test
+  fi
+  if [ $? -ne 0 ]; then
+    print_message "Backend tests failed. Continuing anyway..." "${YELLOW}"
+  fi
 
-print_message "Running frontend tests..." "${BLUE}"
-cd ../expense-tracker-frontend
-ng test --watch=false --browsers=ChromeHeadless
-if [ $? -ne 0 ]; then
-  print_message "Frontend tests failed. Continuing anyway..." "${YELLOW}"
+  print_message "Running frontend tests..." "${BLUE}"
+  cd ../expense-tracker-frontend
+  ng test --watch=false --browsers=ChromeHeadless
+  if [ $? -ne 0 ]; then
+    print_message "Frontend tests failed. Continuing anyway..." "${YELLOW}"
+  fi
+else
+  print_message "Skipping tests as requested..." "${YELLOW}"
 fi
 
 # Start the application

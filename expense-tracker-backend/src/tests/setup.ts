@@ -105,6 +105,12 @@ export const mockResponse = () => {
 
 // Clean up database after tests
 export const cleanupDatabase = async () => {
+  // Skip cleanup if PRESERVE_DATABASE is set to true
+  if (process.env.PRESERVE_DATABASE === 'true') {
+    console.log('Skipping database cleanup as PRESERVE_DATABASE is set to true');
+    return;
+  }
+  
   await prisma.expense.deleteMany();
   await prisma.user.deleteMany();
 }; 

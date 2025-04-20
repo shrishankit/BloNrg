@@ -4,7 +4,10 @@ import bcrypt from 'bcrypt';
 
 describe('User Controller', () => {
   beforeEach(async () => {
-    await cleanupDatabase();
+    // Only cleanup if not preserving database
+    if (process.env.PRESERVE_DATABASE !== 'true') {
+      await cleanupDatabase();
+    }
   });
 
   describe('createUser', () => {

@@ -6,7 +6,7 @@ import {
   deleteExpense,
   deleteBulkExpenses
 } from '../controllers/expenseController';
-import { createMockUser, createMockExpense, mockRequest, mockResponse, cleanupDatabase } from './setup';
+import { createMockUser, createMockExpense, mockRequest, mockResponse, cleanupDatabase, prisma } from './setup';
 
 // Define a type for our extended response
 interface ExtendedResponse extends Response {
@@ -21,7 +21,10 @@ describe('Expense Controller', () => {
   let adminExpense: any;
 
   beforeEach(async () => {
-    await cleanupDatabase();
+    // Only cleanup if not preserving database
+    if (process.env.PRESERVE_DATABASE !== 'true') {
+      await cleanupDatabase();
+    }
     
     // Create test users
     regularUser = await createMockUser('USER');
