@@ -152,6 +152,16 @@ EOF
   print_message "Created/Updated .env file with database credentials." "${GREEN}"
 fi
 
+# Check if the database exists and create it if not
+print_message "Checking if database ${DB_NAME} exists..." "${BLUE}"
+if ! mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" -e "USE ${DB_NAME};"; then
+  print_message "Database ${DB_NAME} not found, creating..." "${YELLOW}"
+  mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" -e "CREATE DATABASE ${DB_NAME} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  print_message "Database ${DB_NAME} created." "${GREEN}"
+else
+  print_message "Database ${DB_NAME} exists." "${GREEN}"
+fi
+
 # Install dependencies
 print_message "Checking backend dependencies..." "${BLUE}"
 cd expense-tracker-backend
@@ -209,6 +219,10 @@ print_message "Starting the application..." "${BLUE}"
 # Start backend in background
 print_message "Starting backend server..." "${GREEN}"
 cd ../expense-tracker-backend
+print_message "Running Prisma generate and applying migrations..." "${BLUE}"
+npx prisma generate
+npx prisma migrate deploy
+print_message "Prisma migrations applied." "${GREEN}"
 npm run dev &
 BACKEND_PID=$!
 
