@@ -28,6 +28,8 @@ export interface UserResponse {
   username: string;
   email: string;
   role: UserRole;
+  firstName: string;
+  lastName: string;
   createdAt: Date;
   updatedAt: Date;
 }

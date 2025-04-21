@@ -51,6 +51,8 @@ export const createUser = async (req: Request<{}, {}, CreateUserInput>, res: Res
       username: user.username,
       email: user.email,
       role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -98,6 +100,8 @@ export const loginUser = async (req: Request<{}, {}, LoginUserInput>, res: Respo
       username: user.username,
       email: user.email,
       role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -184,6 +188,8 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
       username: updatedUser.username,
       email: updatedUser.email,
       role: updatedUser.role,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt
     };

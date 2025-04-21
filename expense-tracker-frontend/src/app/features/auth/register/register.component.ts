@@ -150,6 +150,7 @@ import { CommonModule } from '@angular/common';
     .form-control {
       width: 100%;
       padding: 0.5rem;
+      max-width: -webkit-fill-available;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 1rem;

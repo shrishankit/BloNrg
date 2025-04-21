@@ -31,12 +31,13 @@ import { Router } from '@angular/router';
     }
     
     .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 15px 20px;
-      background-color: #007bff;
-      color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #8c6aac;
+    color: white;
+    border-radius: 10px;
     }
     
     .navbar-brand {

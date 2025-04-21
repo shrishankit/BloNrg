@@ -1,0 +1,107 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <div class="user-profile">
+      <span>{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
+      <span class="user-type">({{ currentUser?.role === 'ADMIN' ? 'Admin' : 'Normal User' }})</span>
+      <div class="avatar">
+        <!-- You can add user avatar here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>Total Expenses</h3>
+      <div class="stat-value">${{ stats.totalExpenses.toFixed(2) }}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Average per Transaction</h3>
+      <div class="stat-value">${{ stats.averagePerTransaction.toFixed(2) }}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Transactions</h3>
+      <div class="stat-value">{{ stats.transactionCount }}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Latest Expense</h3>
+      <div class="stat-value">${{ stats.latestExpense.toFixed(2) }}</div>
+    </div>
+  </div>
+
+  <!-- Expense Trend -->
+  <div class="trend-section">
+    <div class="section-header">
+      <h2>Expense Trend</h2>
+      <select [(ngModel)]="selectedTrendPeriod" (change)="updateChart()" class="period-select">
+        <option value="all">All</option>
+        <option value="month">This Month</option>
+        <option value="week">This Week</option>
+      </select>
+    </div>
+    <div class="trend-chart">
+      <canvas #chartCanvas></canvas>
+    </div>
+  </div>
+
+  <!-- Add New Expense -->
+  <div class="add-expense-section">
+    <h2>Add New Expense</h2>
+    <div class="add-expense-form">
+      <input
+        type="number"
+        [(ngModel)]="newExpense.amount"
+        placeholder="Amount"
+        class="amount-input"
+      >
+      <select [(ngModel)]="newExpense.category" class="category-select">
+        <option value="">Select Category</option>
+        <option *ngFor="let category of categories" [value]="category">
+          {{ category }}
+        </option>
+      </select>
+      <button (click)="addExpense()" class="add-button">Add Expense</button>
+    </div>
+  </div>
+
+  <!-- Recent Expenses -->
+  <div class="recent-expenses-section">
+    <div class="section-header">
+      <h2>Recent Expenses</h2>
+      <div class="date-filters">
+        <input type="date" [(ngModel)]="dateFrom" (change)="filterExpenses()">
+        <span>to</span>
+        <input type="date" [(ngModel)]="dateTo" (change)="filterExpenses()">
+        <select [(ngModel)]="selectedCategory" (change)="filterExpenses()" class="category-filter">
+          <option value="all">All</option>
+          <option *ngFor="let category of categories" [value]="category">
+            {{ category }}
+          </option>
+        </select>
+      </div>
+    </div>
+    <table class="expenses-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th *ngIf="currentUser?.role === 'ADMIN'">User</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let expense of filteredExpenses">
+          <td>{{ expense.date | date }}</td>
+          <td>{{ expense.category }}</td>
+          <td>${{ expense.amount.toFixed(2) }}</td>
+          <td *ngIf="currentUser?.role === 'ADMIN'" class="user-cell">
+            <span class="user-name">{{ expense.user?.username || 'Unknown' }}</span>
+            <span *ngIf="expense.user?.id" class="status-indicator" [class.online]="isUserOnline(expense.user.id)"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div> 

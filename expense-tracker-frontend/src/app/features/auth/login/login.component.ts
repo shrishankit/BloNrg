@@ -92,6 +92,7 @@ import { AuthService } from '../../../core/auth.service';
 
     .form-control {
       width: 100%;
+      max-width: -webkit-fill-available;
       padding: 0.5rem;
       border: 1px solid #ddd;
       border-radius: 4px;
