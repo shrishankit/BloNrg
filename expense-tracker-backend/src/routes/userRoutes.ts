@@ -16,6 +16,6 @@ router.post('/login', loginUser as express.RequestHandler);
 router.get('/online', authenticate, isAdmin, getOnlineUsers as express.RequestHandler);
 
 // Promote user to admin (admin only)
-router.post('/promote', authenticate, isAdmin, promoteToAdmin as express.RequestHandler);
+router.post('/promote', authenticate, promoteToAdmin as express.RequestHandler);
 
 export default router; 

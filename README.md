@@ -22,9 +22,12 @@ A full-stack expense tracking application built with Angular and Node.js, featur
 
 ## Getting Started
 
-Too lazy ... Just save some time run "run-project.sh", PS make it execuatable
+Too lazy ... Just save some time run "run-project.sh".
+This will also add 2 default users.
+PS :use -st to skip unit test evertime.
 ```bash
-chmod +x run-project.sh && ./run-project.sh
+chmod +x run-project.sh && ./run-project.sh 
+chmod +x run-project.sh && ./run-project.sh -st
 ```
     
 

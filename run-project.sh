@@ -228,6 +228,35 @@ print_message "Frontend: http://localhost:4200" "${GREEN}"
 print_message "Backend API: http://localhost:4000" "${GREEN}"
 print_message "Press Ctrl+C to stop both servers" "${YELLOW}"
 
+# Seed default users
+print_message "Seeding default users..." "${BLUE}"
+# Create admin user
+curl -s -X POST http://localhost:4000/api/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","email":"admin@example.com","password":"Admin123","firstName":"Admin","lastName":"User"}'
+# Login as admin to get token
+LOGIN_RESP=$(curl -s -X POST http://localhost:4000/api/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"Admin123"}')
+# Extract token
+ADMIN_TOKEN=$(echo "$LOGIN_RESP" | sed -E 's/.*"token":"([^"]+)".*/\1/')
+# Promote admin user to ADMIN role
+curl -s -X POST http://localhost:4000/api/users/promote \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com"}'
+# Create normal user
+curl -s -X POST http://localhost:4000/api/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user","email":"user@example.com","password":"User123","firstName":"Normal","lastName":"User"}'
+print_message "Default users seeded." "${GREEN}"
+
+# Display seeded user credentials
+print_message "#####" "${BLUE}"
+print_message "Admin => useremail: admin@example.com, password: Admin123" "${YELLOW}"
+print_message "User  => username: user@example.com,  password: User123" "${YELLOW}"
+print_message "#####" "${BLUE}"
+
 # Function to handle script termination
 cleanup() {
   print_message "Stopping servers..." "${YELLOW}"

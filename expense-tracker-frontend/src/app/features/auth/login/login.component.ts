@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <div class="login-container">
       <div class="login-card">
@@ -48,6 +48,10 @@ import { AuthService } from '../../../core/auth.service';
           <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid || loading">
             {{ loading ? 'Logging in...' : 'Login' }}
           </button>
+          
+          <div class="register-link">
+            Don't have an account? <a routerLink="/auth/register">Register here</a>
+          </div>
         </form>
       </div>
     </div>
@@ -140,6 +144,21 @@ import { AuthService } from '../../../core/auth.service';
       border: 1px solid #f5c6cb;
       color: #721c24;
     }
+
+    .register-link {
+      text-align: center;
+      margin-top: 1rem;
+      color: #666;
+    }
+
+    .register-link a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .register-link a:hover {
+      text-decoration: underline;
+    }
   `]
 })
 export class LoginComponent {
@@ -172,13 +191,15 @@ export class LoginComponent {
       this.error = '';
       const { email, password } = this.loginForm.value;
       this.authService.login(email, password).subscribe({
-        next: () => {
+        next: (response) => {
+          console.log('Login successful:', response);
+          this.loading = false;
           this.router.navigate(['/dashboard']);
         },
         error: (error) => {
           this.loading = false;
+          console.error('Login error details:', error);
           this.error = error.error?.message || 'Login failed. Please try again.';
-          console.error('Login failed:', error);
         }
       });
     }
